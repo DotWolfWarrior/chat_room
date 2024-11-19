@@ -1,5 +1,7 @@
-import 'dart:io';
+import 'dart:collection';
 
+import 'package:chat_room/message_handler.dart';
+import 'package:chat_room/unpack.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -13,7 +15,8 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    ColorScheme CSS = ColorScheme(brightness: Brightness.light,
+    ColorScheme CSS = ColorScheme(
+      brightness: Brightness.light,
         primary: Colors.blue[900]!,
         onPrimary: Colors.white,
         secondary: Colors.green,
@@ -47,9 +50,38 @@ class MyApp extends StatelessWidget {
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
         colorScheme: CSS,
-        appBarTheme: AppBarTheme(color: Colors.blue[900],foregroundColor: Colors.white),
+        appBarTheme: AppBarTheme(
+            color: Colors.blue[900],
+            foregroundColor: Colors.white,
+            shape: Border.all(color: Colors.black,width: 2.5)
+        ),
+        buttonTheme: ButtonThemeData(
+            shape: Border.all(color: Colors.black,width: 2.5),
+            colorScheme: ColorScheme(
+                brightness: Brightness.dark,
+                primary: Colors.grey[800]!,
+                onPrimary: Colors.black,
+                secondary: Colors.grey[800]!,
+                onSecondary: Colors.black,
+                error: Colors.red,
+                onError: Colors.black,
+                surface: Colors.green,
+                onSurface: Colors.white
+            ),
+          textTheme: ButtonTextTheme.primary,
+        ),
+        textButtonTheme: TextButtonThemeData(style: ButtonStyle(
+         side: WidgetStateProperty.all(const BorderSide(color: Colors.black, width: 1.5)),
+         //  side: WidgetStateProperty.all(BorderSide(color: Colors.grey[300]!,width: 1.5)),
+          shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(3))),
+          foregroundColor: WidgetStateProperty.all(Colors.black),
+          backgroundColor: WidgetStateProperty.all(Colors.grey[600]),
+          overlayColor: WidgetStateProperty.all(Colors.grey[600]),
+          shadowColor: WidgetStateProperty.all(const Color.fromARGB(0, 0, 0, 0)),
 
-        useMaterial3: true,
+          // elevation: WidgetStateProperty.all(10)
+        )),
+        // textButtonTheme: const TextButtonThemeData(style: ButtonStyle(shape: Outlined)),
       ),
       home: const MyHomePage(title: 'ChatRoom Demo'),
     );
@@ -76,42 +108,63 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
-  Socket? _socket;
-  Stream? _channel;
+  final MessageHandler _MH = MessageHandler();
+  final Queue<String> _rmsgq = Queue();
+  final List<Widget> _rooms = [];
+  // Socket? _socket;
+  // Stream? _channel;
+
   // final test = WebSocket.connect('ws://192.168.1.102:25564');
   // final _channel = WebSocketChannel.connect(Uri(scheme: 'ws', host: '127.0.0.1',port: 25565));
   // final _channel = WebSocketChannel.connect(Uri.parse('ws://192.168.1.102:25565'));
   void connect() async{
-    int port = 25564;
-    debugPrint("port: $port");
-    final temp = await Socket.connect("localHost", port);
-    setState(() {
-      _socket = temp;
-      _channel = _socket?.asBroadcastStream();
-    });
-  }
+      // int port = 25565;
+      // // debugPrint("port: $port");
+      // final temp = await Socket.connect("localHost", port);
+      // setState(() {
+      //   temp.write('<usr>dww</usr>\r\n');
+      //   _socket = temp;
+      //   _channel = _socket?.asBroadcastStream();
+      //   _MH.addPoll("rooms",_rmsgq);
+      //   _channel?.listen(_MH.poll);
+      // });
+    }
 
   @override
   void initState() {
     super.initState();
-    connect();
+    _MH.addPoll('rooms', _rmsgq);
+    // connect();
   }
 
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
-    //
-    if(_socket == null){
+
+    if(!_MH.connected){
       return const CircularProgressIndicator();
     }
-
+    while(_rmsgq.isNotEmpty){
+      String msg = _rmsgq.removeFirst();
+      msg = unpack(msg);
+      List<String> openRooms = msg.split(';');
+      for (var room in openRooms) {
+        _rooms.add(TextButton(onPressed: () {
+          _MH.send('<rooms><join>$room</join></rooms>');
+        }, child: Center(child: Text(msg),)));
+      }
+      
+    }
+    while(_MH.debug.isNotEmpty){
+      debugPrint('UnHandled Message: ${_MH.debug.removeFirst()}');
+    }
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        shape: Border.all(color: Colors.black,width: 2.5),
+        // shape: Border.all(color: Colors.black,width: 2.5),
         // TRY THIS: Try changing the color here to a specific color (to
         // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
         // change color while the other colors stay the same.
@@ -148,15 +201,9 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            StreamBuilder(
-              stream: _channel,
-              builder: (context, snapshot) {
-                if(snapshot.hasData) {
-                  String msg = String.fromCharCodes(snapshot.data);
-                  return Text(msg);
-                }
-                return const CircularProgressIndicator();
-              },
+            ListView(
+              shrinkWrap: true,
+              children: _rooms,
             ),
             Form(
               child: TextFormField(
@@ -185,7 +232,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void _sendMessage() {
     if (_controller.text.isNotEmpty) {
       // debugPrint('text: ${_controller.text}');
-      _socket?.write('${_controller.text}\r\n');
+      _MH.send(_controller.text);
+      // _socket?.write('\r\n');
       // _channel.sink.add(_controller.text);
     }
   }
@@ -194,7 +242,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     // TODO: implement dispose
     // _channel.sink.close();
-    _socket?.close();
+    // _socket?.close();
+    _MH.dispose();
     _controller.dispose();
     super.dispose();
   }
