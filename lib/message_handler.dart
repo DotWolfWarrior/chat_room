@@ -1,15 +1,18 @@
 import 'dart:collection';
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 // GIVE ME MY POINTERS
 class MessageHandler{
   // Stream? _channel;
   static final MessageHandler _instance = MessageHandler._messageHandler();
-  final Map<String,Queue<String>> _pollInfo = {};
-  final Queue<String> debug = Queue();
-  bool connected = false;
+  final Map<String,QueueUpdate> _pollInfo = {};
+  // Queue<String> debug = Queue();
+  final debug = QueueUpdate();
+
+  bool _connected = false;
+  get connected => _connected;
   Socket? _socket;
   Stream? _channel;
 
@@ -17,6 +20,7 @@ class MessageHandler{
   factory MessageHandler(){
     return _instance;
   }
+
   MessageHandler._messageHandler(){
     int port = 25565;
     // // debugPrint("port: $port");
@@ -26,7 +30,7 @@ class MessageHandler{
         _socket = s;
         _channel = _socket?.asBroadcastStream();
         _channel?.listen(poll);
-        connected = true;
+        _connected = true;
     });
   }
 
@@ -41,13 +45,15 @@ class MessageHandler{
       int stop = packet.indexOf('>');
       if (_pollInfo.containsKey(packet.substring(start, stop))) {
         _pollInfo[packet.substring(start, stop)]?.add(packet);
+        _pollInfo[packet.substring(start, stop)]?.send();
       } else {
         debug.add(packet);
       }
     }
+    debug.send();
   }
 
-  void addPoll(String name, Queue<String> messageQueue){
+  void addPoll(String name, QueueUpdate messageQueue){
     if(!_pollInfo.containsKey(name)){
       _pollInfo[name] = messageQueue;
     }
@@ -66,5 +72,23 @@ class MessageHandler{
 
   void dispose(){
     _socket?.close();
+  }
+}
+
+class QueueUpdate extends ChangeNotifier{
+  final Queue<String> _queue = Queue();
+  get length => _queue.length;
+  get isNotEmpty => _queue.isNotEmpty;
+
+  void add(String ele){
+    _queue.add(ele);
+  }
+
+  String pop(){
+    return _queue.removeFirst();
+  }
+
+  void send(){
+    notifyListeners();
   }
 }

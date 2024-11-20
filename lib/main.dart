@@ -1,7 +1,7 @@
-import 'dart:collection';
 
 import 'package:chat_room/message_handler.dart';
-import 'package:chat_room/unpack.dart';
+import 'package:chat_room/room_display.dart';
+import 'package:chat_room/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -83,7 +83,7 @@ class MyApp extends StatelessWidget {
         )),
         // textButtonTheme: const TextButtonThemeData(style: ButtonStyle(shape: Outlined)),
       ),
-      home: const MyHomePage(title: 'ChatRoom Demo'),
+      home: const MyHomePage(title: 'Doors 95'),
     );
   }
 }
@@ -109,32 +109,22 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   final MessageHandler _MH = MessageHandler();
-  final Queue<String> _rmsgq = Queue();
+  final QueueUpdate _rmsgq = QueueUpdate();
   final List<Widget> _rooms = [];
-  // Socket? _socket;
-  // Stream? _channel;
-
-  // final test = WebSocket.connect('ws://192.168.1.102:25564');
-  // final _channel = WebSocketChannel.connect(Uri(scheme: 'ws', host: '127.0.0.1',port: 25565));
-  // final _channel = WebSocketChannel.connect(Uri.parse('ws://192.168.1.102:25565'));
-  void connect() async{
-      // int port = 25565;
-      // // debugPrint("port: $port");
-      // final temp = await Socket.connect("localHost", port);
-      // setState(() {
-      //   temp.write('<usr>dww</usr>\r\n');
-      //   _socket = temp;
-      //   _channel = _socket?.asBroadcastStream();
-      //   _MH.addPoll("rooms",_rmsgq);
-      //   _channel?.listen(_MH.poll);
-      // });
-    }
+  final List<TextButton> _openRooms = [];
 
   @override
   void initState() {
     super.initState();
     _MH.addPoll('rooms', _rmsgq);
-    // connect();
+    _MH.debug.addListener(printUnhandled);
+    _rmsgq.addListener(parseMSG);
+  }
+
+  void printUnhandled(){
+    while(_MH.debug.isNotEmpty){
+      debugPrint('UnHandled Message: ${_MH.debug.pop()}');
+    }
   }
 
   @override
@@ -145,34 +135,11 @@ class _MyHomePageState extends State<MyHomePage> {
     if(!_MH.connected){
       return const CircularProgressIndicator();
     }
-    while(_rmsgq.isNotEmpty){
-      String msg = _rmsgq.removeFirst();
-      msg = unpack(msg);
-      List<String> openRooms = msg.split(';');
-      for (var room in openRooms) {
-        _rooms.add(TextButton(onPressed: () {
-          _MH.send('<rooms><join>$room</join></rooms>');
-        }, child: Center(child: Text(msg),)));
-      }
-      
-    }
-    while(_MH.debug.isNotEmpty){
-      debugPrint('UnHandled Message: ${_MH.debug.removeFirst()}');
-    }
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // shape: Border.all(color: Colors.black,width: 2.5),
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        // backgroundColor: Theme.of(context).colorScheme.primary,
-        // backgroundColor: Colors.blue[900],
-        // titleTextStyle: TextStyle(color: Colors.white,fontFamily: GoogleFonts.vt323().fontFamily,fontSize: 36),
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -183,22 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             ListView(
@@ -211,15 +163,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 decoration: const InputDecoration(labelText: 'Send a message'),
               ),
             ),
-            /*const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),*/
           ],
         ),
+      ),
+      drawer: NavigationDrawer(
+          children: _openRooms
+          // children: List.from(_openRooms.values)
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _sendMessage,
@@ -227,6 +176,31 @@ class _MyHomePageState extends State<MyHomePage> {
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  void parseMSG(){
+    setState(() {
+      while (_rmsgq.isNotEmpty) {
+        String msg = _rmsgq.pop();
+        msg = unpack(msg);
+        List<String> openRooms = msg.split(';');
+        for (var room in openRooms) {
+          _rooms.add(TextButton(onPressed: () {
+            // if (!_openRooms.any((ele) => ele.)) {
+              debugPrint("Adding entering room");
+              _openRooms.add(TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => RoomDisplay(name: room)
+                    ));
+                  },
+                  child: Text(room)
+              ));
+            // }
+          }, child: Center(child: Text(room),)));
+        }
+      }
+    });
   }
 
   void _sendMessage() {
@@ -248,3 +222,4 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 }
+
