@@ -151,6 +151,7 @@ class _RoomDisplayState extends State<RoomDisplay> {
         widget._log.add(SizedBox(width: double.infinity,child: Text('[${widget._MH.user}]: ${_controller.text}')));
       });
       widget._MH.send(_wrapper(_controller.text));
+      _controller.clear();
       // _socket?.write('\r\n');
       // _channel.sink.add(_controller.text);
     }
