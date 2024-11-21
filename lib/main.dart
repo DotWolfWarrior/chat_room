@@ -5,6 +5,8 @@ import 'package:chat_room/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'doors_95.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -55,28 +57,27 @@ class MyApp extends StatelessWidget {
             foregroundColor: Colors.white,
             shape: Border.all(color: Colors.black,width: 2.5)
         ),
-        buttonTheme: ButtonThemeData(
-            shape: Border.all(color: Colors.black,width: 2.5),
-            colorScheme: ColorScheme(
-                brightness: Brightness.dark,
-                primary: Colors.grey[800]!,
-                onPrimary: Colors.black,
-                secondary: Colors.grey[800]!,
-                onSecondary: Colors.black,
-                error: Colors.red,
-                onError: Colors.black,
-                surface: Colors.green,
-                onSurface: Colors.white
-            ),
-          textTheme: ButtonTextTheme.primary,
-        ),
+        // buttonTheme: ButtonThemeData(
+        //     shape: Border.all(color: Colors.black,width: 2.5),
+        //     colorScheme: ColorScheme(
+        //         brightness: Brightness.dark,
+        //         primary: Colors.grey[800]!,
+        //         onPrimary: Colors.black,
+        //         secondary: Colors.grey[800]!,
+        //         onSecondary: Colors.black,
+        //         error: Colors.red,
+        //         onError: Colors.black,
+        //         surface: Colors.green,
+        //         onSurface: Colors.white
+        //     ),
+        //   textTheme: ButtonTextTheme.primary,
+        // ),
+
         textButtonTheme: TextButtonThemeData(style: ButtonStyle(
-         side: WidgetStateProperty.all(const BorderSide(color: Colors.black, width: 1.5)),
-         //  side: WidgetStateProperty.all(BorderSide(color: Colors.grey[300]!,width: 1.5)),
-          shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(3))),
+          // shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(5))),
           foregroundColor: WidgetStateProperty.all(Colors.black),
-          backgroundColor: WidgetStateProperty.all(Colors.grey[600]),
-          overlayColor: WidgetStateProperty.all(Colors.grey[600]),
+          backgroundColor: WidgetStateProperty.all(Colors.grey),
+          overlayColor: WidgetStateProperty.all(Colors.grey),
           shadowColor: WidgetStateProperty.all(const Color.fromARGB(0, 0, 0, 0)),
 
           // elevation: WidgetStateProperty.all(10)
@@ -111,11 +112,13 @@ class _MyHomePageState extends State<MyHomePage> {
   final MessageHandler _MH = MessageHandler();
   final QueueUpdate _rmsgq = QueueUpdate();
   final List<Widget> _rooms = [];
-  final List<TextButton> _openRooms = [];
+  final Map<String,RoomDisplay> _openRooms = {};
+  final List<TextButton95> _openRoomsButtons = [];
 
   @override
   void initState() {
     super.initState();
+    _MH.user = 'dww';
     _MH.addPoll('rooms', _rmsgq);
     _MH.debug.addListener(printUnhandled);
     _rmsgq.addListener(parseMSG);
@@ -143,36 +146,68 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            const Icon(Icons.remove),
+            // Container(
+            //     decoration: ShapeDecoration(
+            //       color: Colors.grey,
+            //         shape: Border(
+            //         top: BorderSide(color: Colors.grey[100]!, width: 1.5),
+            //         right: BorderSide(color: Colors.grey[600]!, width: 1.5),
+            //         left: BorderSide(color: Colors.grey[100]!, width: 1.5),
+            //         bottom: BorderSide(color: Colors.grey[600]!, width: 1.5)
+            //     )
+            //     ),
+            //     child: const Icon(Icons.remove)
+            // ),
             Expanded(child: Center(child: Text(widget.title))),
-            const Icon(Icons.minimize),
+            // const Icon(Icons.minimize),
           ],
         ),
+        leading: Builder(
+          builder: (context) {
+            return TextButton95(onPressed: () {Scaffold.of(context).openDrawer();}, child: const Center(child: Icon(Icons.remove,size: 30,)));
+          }
+        ), //this is dumb why
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             ListView(
+              // padding: const EdgeInsets.symmetric(vertical: 4),
               shrinkWrap: true,
               children: _rooms,
             ),
-            Form(
-              child: TextFormField(
-                controller: _controller,
-                decoration: const InputDecoration(labelText: 'Send a message'),
+            Row(children: <Widget>[
+              TextButton95(onPressed: (){_MH.send('<rooms><refresh></rooms>');}, child: const Text('Refresh')),
+              TextButton95(onPressed: (){_MH.send('<rooms><create>debug</create></create></rooms>');}, child: const Text('Create Room')) //TODO make this create different rooms
+            ],),
+            Container(
+              decoration: ShapeDecoration(shape: Border(
+                  top: const BorderSide(color: Colors.black, width: 2),
+                  right: BorderSide(color: Colors.grey[400]!, width: 2),
+                  left: const BorderSide(color: Colors.black, width: 2),
+                  bottom: BorderSide(color: Colors.grey[400]!, width: 2)
               ),
+                color: Colors.white
+              ),
+              // margin: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
+              child: TextField(
+              controller: _controller,
+              decoration: const InputDecoration(hintText: 'Send a Debug message',hintStyle: TextStyle(color: Colors.black),focusedBorder: InputBorder.none, border: InputBorder.none),// suffix icon maybe
+                cursorColor: Colors.black,
+            ),
             ),
           ],
         ),
       ),
       drawer: NavigationDrawer(
-          children: _openRooms
+          children: _openRoomsButtons
           // children: List.from(_openRooms.values)
       ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: _sendMessage,
-        tooltip: 'Increment',
+        tooltip: 'send',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
@@ -184,23 +219,46 @@ class _MyHomePageState extends State<MyHomePage> {
         String msg = _rmsgq.pop();
         msg = unpack(msg);
         List<String> openRooms = msg.split(';');
+        debugPrint('openRooms: $openRooms');
+        _rooms.clear();
         for (var room in openRooms) {
-          _rooms.add(TextButton(onPressed: () {
-            // if (!_openRooms.any((ele) => ele.)) {
-              debugPrint("Adding entering room");
-              _openRooms.add(TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => RoomDisplay(name: room)
-                    ));
-                  },
-                  child: Text(room)
-              ));
-            // }
-          }, child: Center(child: Text(room),)));
+          _rooms.add(Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.5,horizontal: 1),
+            child: TextButton95(
+              onPressed: () => _enterRoom(room),
+              child: Center(child: Text(room),),
+
+            ),
+          ));
+          // _rooms.add(const Padding(padding: P));
         }
       }
     });
+  }
+
+  void _enterRoom(String room) {
+    if (!_openRooms.containsKey(room)) {
+      debugPrint("Adding entering room $_openRooms");
+      _openRooms[room] = RoomDisplay(name: room);
+      _openRoomsButtons.add(TextButton95(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) {
+                  return _openRooms[room]!;
+                }));
+          },
+          child: Text(room)
+      ));
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) {
+            return _openRooms[room]!;
+          }));
+    } else {
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) {
+            return _openRooms[room]!;
+          }));
+    }
   }
 
   void _sendMessage() {
@@ -214,7 +272,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     // _channel.sink.close();
     // _socket?.close();
     _MH.dispose();
