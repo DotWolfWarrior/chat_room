@@ -10,21 +10,29 @@ class MessageHandler{
   final Map<String,QueueUpdate> _pollInfo = {};
   String? _user;
   String get user => _user!;
+  // returns true if user is Not null
+  bool get hasUsers => _user != null;
   set user(String user) {
     if(_user != null){
       _socket?.close();
       _user = user;
       return;
     }
+    _connected.value = true;
     _user = user;
     _socket?.write('<usr>$_user</usr>\r\n');
-    _connected = true;
   }
   // Queue<String> debug = Queue();
   final debug = QueueUpdate();
 
-  bool _connected = false;
-  get connected => _connected;
+
+  final ValueNotifier<bool> _connected = ValueNotifier(false);
+  // bool _connected = false;
+  get connected => _connected.value;
+  set connectedListener(void Function() f){
+    debugPrint("Added listener to connected");
+    _connected.addListener(f);
+  }
   Socket? _socket;
   Stream? _channel;
 
@@ -46,26 +54,27 @@ class MessageHandler{
     _channel = _socket?.asBroadcastStream();
     _channel?.listen(poll,
         onError: (e) async{
-          _connected = false;
+          _connected.value = false;
           initConnection(port);
         },
       onDone: () async{
-        _connected = false;
+        _connected.value = false;
         initConnection(port);
       }
     );
     if(_user != null) {
       _socket?.write('<usr>$_user</usr>\r\n');
-      _connected = true;
+      _connected.value = true;
     }
   }
 
   Future<Socket> connect(int port) async {
     try {
-      return await Socket.connect('192.168.1.139', port);
+      return await Socket.connect('localhost', port);
+      // return await Socket.connect('192.168.1.139', port);
     } catch(e){
       debugPrint('connection Failed: $e');
-      Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 1000));
       return connect(port);
     }
 
@@ -78,17 +87,21 @@ class MessageHandler{
       if(packet.isEmpty){
         continue;
       }
-      int start = packet.indexOf('<') + 1;
+      int start = packet.indexOf('<');
       int stop = packet.indexOf('>');
-      if (_pollInfo.containsKey(packet.substring(start, stop))) {
-        _pollInfo[packet.substring(start, stop)]?.add(packet);
-        _pollInfo[packet.substring(start, stop)]?.send();
+      if(start == -1 || stop == -1){
+        continue;
+      }
+      debugPrint('[MESSAGEHANDLER]: ${msg.trim()} as ${packet.substring(start + 1, stop)}');
+      if (_pollInfo.containsKey(packet.substring(start + 1, stop))) {
+        _pollInfo[packet.substring(start+1, stop)]?.add(packet);
+        // _pollInfo[packet.substring(start, stop)]?.send();
       } else {
         debug.add(packet);
         debugPrint(packet);
       }
     }
-    debug.send();
+    // debug.send();
   }
 
   void addPoll(String name, QueueUpdate messageQueue){
@@ -120,6 +133,7 @@ class QueueUpdate extends ChangeNotifier{
 
   void add(String ele){
     _queue.add(ele);
+    notifyListeners();
   }
 
   String pop(){

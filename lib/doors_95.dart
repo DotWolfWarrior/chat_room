@@ -147,10 +147,21 @@ class TextField95State extends State<TextField95>{
       ),
           color: Colors.white
       ),
-      // margin: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
+      // padding: EdgeInsets.zero,
+      margin: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
       child: TextField(
         controller: widget.controller,
-        decoration: InputDecoration(hintText: widget.hintText,hintStyle: const TextStyle(color: Colors.black),focusedBorder: InputBorder.none, border: InputBorder.none, constraints: widget.constraints),// suffix icon maybe
+        decoration: InputDecoration(
+          // filled: true,
+          hintText: widget.hintText,
+          hintStyle: const TextStyle(color: Colors.black),
+          focusedBorder: InputBorder.none,
+          border: InputBorder.none,
+          constraints: widget.constraints,
+          // constraints: BoxConstraints.lerp(widget.constraints, BoxConstraints(maxHeight: 10), 1) ,
+          isDense: true,
+          contentPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+        ),// suffix icon maybe
         cursorColor: Colors.black,
           autocorrect: widget.autocorrect,
           autofillHints: widget.autofillHints,
@@ -215,6 +226,34 @@ class TextField95State extends State<TextField95>{
           textInputAction: widget.textInputAction,
           undoController: widget.undoController
       ),
+    );
+  }
+}
+
+class Container95 extends Container{
+  final double? height;
+  final double? width;
+  Container95({
+    super.key,
+    super.child,
+    this.height,
+    this.width
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: ShapeDecoration(shape: Border(
+          top: const BorderSide(color: Colors.black, width: 2),
+          right: BorderSide(color: Colors.grey[400]!, width: 2),
+          left: const BorderSide(color: Colors.black, width: 2),
+          bottom: BorderSide(color: Colors.grey[400]!, width: 2)
+      ),
+        color: Colors.grey
+      ),
+      width: width,
+      height: height,
+      child: child,
     );
   }
 

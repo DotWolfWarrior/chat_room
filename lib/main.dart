@@ -5,6 +5,7 @@ import 'package:chat_room/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'create_room.dart';
 import 'doors_95.dart';
 
 void main() {
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget {
     );//.fromSeed(seedColor: Colors.blue[100]!);//.fromARGB(255, 0, 0, 255)),
     // CSS.surface = Colors.grey;
     return MaterialApp(
-      title: 'Chat Room Demo',
+      title: 'Doors 95',
       theme: ThemeData(
         fontFamily: GoogleFonts.vt323().fontFamily,
         // This is the theme of your application.
@@ -118,9 +119,18 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _MH.user = 'dww';
+    // _MH.user = 'dww';
     _MH.addPoll('rooms', _rmsgq);
     _MH.debug.addListener(printUnhandled);
+    _MH.connectedListener = (){
+      debugPrint("Updating connection");
+      setState(() {
+        if(!_MH.connected) {
+          _openRoomsButtons.clear();
+          _openRooms.clear();
+        }
+      });
+    }; // this is funny
     _rmsgq.addListener(parseMSG);
   }
 
@@ -134,6 +144,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
+    debugPrint("Building");
+
+    if(!_MH.hasUsers){
+      return getUser();
+    }
 
     if(!_MH.connected){
       return const CircularProgressIndicator();
@@ -146,57 +161,56 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            // Container(
-            //     decoration: ShapeDecoration(
-            //       color: Colors.grey,
-            //         shape: Border(
-            //         top: BorderSide(color: Colors.grey[100]!, width: 1.5),
-            //         right: BorderSide(color: Colors.grey[600]!, width: 1.5),
-            //         left: BorderSide(color: Colors.grey[100]!, width: 1.5),
-            //         bottom: BorderSide(color: Colors.grey[600]!, width: 1.5)
-            //     )
-            //     ),
-            //     child: const Icon(Icons.remove)
-            // ),
             Expanded(child: Center(child: Text(widget.title))),
-            // const Icon(Icons.minimize),
+            Container95(child: const Icon(Icons.minimize,color: Colors.black,)),
           ],
         ),
         leading: Builder(
           builder: (context) {
-            return TextButton95(onPressed: () {Scaffold.of(context).openDrawer();}, child: const Center(child: Icon(Icons.remove,size: 30,)));
+            return Container95(
+              height: 10,
+              width: 10,
+              child: TextButton(
+                  onPressed: () {Scaffold.of(context).openDrawer();},
+                  child: const Center(
+                      child: Icon(Icons.remove,size: 30,)
+                  )
+              ),
+            );
           }
         ), //this is dumb why
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
-            ListView(
+            ListView.builder(
+              controller: ScrollController(),
               // padding: const EdgeInsets.symmetric(vertical: 4),
               shrinkWrap: true,
-              children: _rooms,
+              itemCount: _rooms.length,
+              itemBuilder: (context, idx) => _rooms[idx],
+              // children: _rooms,
             ),
-            Row(children: <Widget>[
-              TextButton95(onPressed: (){_MH.send('<rooms><refresh></rooms>');}, child: const Text('Refresh')),
-              TextButton95(onPressed: (){_MH.send('<rooms><create>debug</create></create></rooms>');}, child: const Text('Create Room')) //TODO make this create different rooms
-            ],),
-            Container(
-              decoration: ShapeDecoration(shape: Border(
-                  top: const BorderSide(color: Colors.black, width: 2),
-                  right: BorderSide(color: Colors.grey[400]!, width: 2),
-                  left: const BorderSide(color: Colors.black, width: 2),
-                  bottom: BorderSide(color: Colors.grey[400]!, width: 2)
-              ),
-                color: Colors.white
-              ),
-              // margin: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
-              child: TextField(
-              controller: _controller,
-              decoration: const InputDecoration(hintText: 'Send a Debug message',hintStyle: TextStyle(color: Colors.black),focusedBorder: InputBorder.none, border: InputBorder.none),// suffix icon maybe
-                cursorColor: Colors.black,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(5, 0, 5, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextButton95(onPressed: (){_MH.send('<rooms><refresh></rooms>');}, child: const Text('Refresh')),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextButton95(onPressed: _createRoom, child: const Text('Create Room')),
+                  ) //TODO make this create different rooms
+              ],),
             ),
-            ),
+            // TextField95(
+            //   controller: _controller,
+            //   hintText: 'Type debug message',
+            // ),
           ],
         ),
       ),
@@ -205,11 +219,11 @@ class _MyHomePageState extends State<MyHomePage> {
           // children: List.from(_openRooms.values)
       ),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: _sendMessage,
-        tooltip: 'send',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: _sendMessage,
+      //   tooltip: 'send',
+      //   child: const Icon(Icons.add),
+      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
@@ -227,12 +241,12 @@ class _MyHomePageState extends State<MyHomePage> {
             child: TextButton95(
               onPressed: () => _enterRoom(room),
               child: Center(child: Text(room),),
-
             ),
           ));
           // _rooms.add(const Padding(padding: P));
         }
       }
+      debugPrint('Rooms: $_rooms');
     });
   }
 
@@ -260,23 +274,66 @@ class _MyHomePageState extends State<MyHomePage> {
           }));
     }
   }
-
-  void _sendMessage() {
-    if (_controller.text.isNotEmpty) {
-      // debugPrint('text: ${_controller.text}');
-      _MH.send(_controller.text);
-      // _socket?.write('\r\n');
-      // _channel.sink.add(_controller.text);
-    }
+  
+  void _createRoom(){
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => const CreateRoom()
+    ));
   }
+
+  // void _sendMessage() {
+  //   if (_controller.text.isNotEmpty) {
+  //     // debugPrint('text: ${_controller.text}');
+  //     _MH.send(_controller.text);
+  //     _controller.clear();
+  //     // _socket?.write('\r\n');
+  //     // _channel.sink.add(_controller.text);
+  //   }
+  // }
 
   @override
   void dispose() {
     // _channel.sink.close();
     // _socket?.close();
     _MH.dispose();
+    _rmsgq.removeListener(parseMSG);
+    _rmsgq.dispose();
     _controller.dispose();
     super.dispose();
   }
-}
 
+  Widget getUser() {
+    return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Expanded(child: Center(child: Text(widget.title))),
+              // Container95(child: const Icon(Icons.minimize,color: Colors.black,)),
+            ],
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextField95(
+                controller: _controller,
+                hintText: 'username',
+              ),
+              TextButton95(onPressed: _setUser, child: const Text('Connect'))
+            ],
+          ),
+        )
+    );
+  }
+
+  void _setUser() {
+    setState(() {
+      if (_controller.text.isNotEmpty) {
+        _MH.user = _controller.text;
+        _controller.clear();
+      }
+    });
+  }
+}
