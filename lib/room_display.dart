@@ -10,11 +10,14 @@ class RoomDisplay extends StatefulWidget {
   final String name;
   final QueueUpdate _queue = QueueUpdate();
   final MessageHandler _MH = MessageHandler();
-  // final List<Widget> _log = [];
+  final List<Widget> _log = [];
 
   RoomDisplay({super.key, required this.name}){
     _MH.addPoll(name, _queue);
-    _MH.send('<rooms><join>$name</join></rooms>');
+  }
+
+  void dispose(){
+    _MH.removePoll(name);
   }
 
   @override
@@ -24,40 +27,45 @@ class RoomDisplay extends StatefulWidget {
 class _RoomDisplayState extends State<RoomDisplay> {
 // class RoomDisplay extends StatelessWidget {
   final TextEditingController _controller = TextEditingController();
-  static final ValueNotifier<bool> _connected = ValueNotifier(false);
-  final List<Widget> _log = [];
+  static final ValueNotifier<bool> _connected = ValueNotifier(false); // may not be needed
+  // final List<Widget> _log = [];
   _RoomDisplayState();
 
   @override
   void initState() {
     super.initState();
-    widget._queue.addListener(logListener);
-    _connected.addListener(() => setState(() {}));
+    if(!widget._queue.listener) {
+      widget._queue.addListener(logListener);
+      _connected.addListener(() => setState(() {}));
+      widget._MH.send('<rooms><join>${widget.name}</join></rooms>');
+    }
   }
 
   void logListener(){
     debugPrint("LogListener");
-    setState(() {
-      while(widget._queue.isNotEmpty) {
-        String msg = widget._queue.pop();
-        msg = unpack(msg);
-        int start = msg.indexOf('<');
-        int stop = msg.indexOf('>');
-        if((start != -1 || stop != -1) && msg.substring(start+1,stop) == 'status'){
-          int status = int.parse(unpack(msg));
-          debugPrint('${widget.name} status: $status');
-          if(status == 200){
-            _connected.value = true;
-          } else if (status == 258){
-            _log.add(const SizedBox(width: double.infinity, child: Text("[Server]: You are now the owner of this room.")));
-          } else if (status == 800){
-            _log.add(const SizedBox(width: double.infinity, child: Text("Entering Failed try again")));
-          }
-        } else {
-          _log.insert(0,SizedBox(width: double.infinity, child: Text(msg,softWrap: true,)));
+    while(widget._queue.isNotEmpty) {
+      String msg = widget._queue.pop();
+      msg = unpack(msg);
+      int start = msg.indexOf('<');
+      int stop = msg.indexOf('>');
+      if((start != -1 || stop != -1) && msg.substring(start+1,stop) == 'status'){
+        int status = int.parse(unpack(msg));
+        debugPrint('${widget.name} status: $status');
+        if(status == 200){
+          _connected.value = true;
+        } else if (status == 258){
+          widget._log.add(const SizedBox(width: double.infinity, child: Text("[Server]: You are now the owner of this room.")));
+        } else if (status == 800){
+          widget._log.add(const SizedBox(width: double.infinity, child: Text("Entering Failed try again")));
         }
+      } else {
+        widget._log.insert(0,SizedBox(width: double.infinity, child: Text(msg,softWrap: true,)));
       }
-    });
+    }
+
+    if(mounted){
+      setState(() {});
+    }
   }
 
   @override
@@ -76,6 +84,15 @@ class _RoomDisplayState extends State<RoomDisplay> {
               // const Icon(Icons.minimize),
             ],
           ),
+          automaticallyImplyLeading: false,
+          leading: Container95(
+            height: 10,
+            width: 10,
+            child: TextButton(
+                  onPressed: (){Navigator.pop(context);},
+                  child: const Icon(Icons.arrow_back)
+              )
+            ),
         ),
         body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -86,8 +103,8 @@ class _RoomDisplayState extends State<RoomDisplay> {
               controller: ScrollController(),
               shrinkWrap: true,
               // crossAxisAlignment: CrossAxisAlignment.start,
-              itemCount: _log.length,
-              itemBuilder: (context, idx) => _log[idx],
+              itemCount: widget._log.length,
+              itemBuilder: (context, idx) => widget._log[idx],
               // children: widget._log,
             ),
             TextButton95(onPressed: () {}, child: const Text("Close"))
@@ -117,8 +134,8 @@ class _RoomDisplayState extends State<RoomDisplay> {
               controller: ScrollController(),
               // shrinkWrap: true,
               // crossAxisAlignment: CrossAxisAlignment.start,
-              itemCount: _log.length,
-              itemBuilder: (context, idx) => _log[idx],
+              itemCount: widget._log.length,
+              itemBuilder: (context, idx) => widget._log[idx],
               // children: widget._log,
             ),
           ),
@@ -139,11 +156,6 @@ class _RoomDisplayState extends State<RoomDisplay> {
           ),
         ],
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: _sendMessage,
-      //   tooltip: 'send',
-      //   child: const Icon(Icons.add),
-      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
@@ -155,12 +167,10 @@ class _RoomDisplayState extends State<RoomDisplay> {
     if (_controller.text.isNotEmpty) {
       // debugPrint('text: ${_controller.text}');
       setState(() {
-        _log.insert(0,SizedBox(width: double.infinity,child: Text('[${widget._MH.user}]: ${_controller.text}')));
+        widget._log.insert(0,SizedBox(width: double.infinity,child: Text('[${widget._MH.user}]: ${_controller.text}')));
       });
       widget._MH.send(_wrapper(_controller.text));
       _controller.clear();
-      // _socket?.write('\r\n');
-      // _channel.sink.add(_controller.text);
     }
   }
 }

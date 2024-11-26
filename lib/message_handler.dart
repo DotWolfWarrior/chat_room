@@ -128,11 +128,13 @@ class MessageHandler{
 
 class QueueUpdate extends ChangeNotifier{
   final Queue<String> _queue = Queue();
-  get length => _queue.length;
-  get isNotEmpty => _queue.isNotEmpty;
+  int get length => _queue.length;
+  bool get isNotEmpty => _queue.isNotEmpty;
+  bool get listener => hasListeners;
 
   void add(String ele){
     _queue.add(ele);
+    // debugPrint('has Listeners: $hasListeners');
     notifyListeners();
   }
 

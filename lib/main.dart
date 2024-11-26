@@ -114,7 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final QueueUpdate _rmsgq = QueueUpdate();
   final List<Widget> _rooms = [];
   final Map<String,RoomDisplay> _openRooms = {};
-  final List<TextButton95> _openRoomsButtons = [];
+  final List<Widget> _openRoomsButtons = [];
 
   @override
   void initState() {
@@ -204,7 +204,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: TextButton95(onPressed: _createRoom, child: const Text('Create Room')),
-                  ) //TODO make this create different rooms
+                  )
               ],),
             ),
             // TextField95(
@@ -254,14 +254,33 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!_openRooms.containsKey(room)) {
       debugPrint("Adding entering room $_openRooms");
       _openRooms[room] = RoomDisplay(name: room);
-      _openRoomsButtons.add(TextButton95(
-          onPressed: () {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) {
-                  return _openRooms[room]!;
-                }));
-          },
-          child: Text(room)
+      _openRoomsButtons.add(Padding(
+        key: Key(room),
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            TextButton95(
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) {
+                        return _openRooms[room]!;
+                      }));
+                },
+                child: Text(room)
+            ),
+            TextButton95(
+                onPressed: (){
+                  _MH.send('<rooms><leave>$room</leave></rooms>');
+                  _openRooms.remove(room);
+                  Widget test = _openRoomsButtons.firstWhere((Widget ele){
+                    return ele.key! == Key(room);
+                  });
+                  _openRoomsButtons.remove(test);
+                  setState(() {});
+                },
+                child: const Text("Leave"))
+          ],
+        ),
       ));
       Navigator.of(context).push(MaterialPageRoute(
           builder: (context) {
