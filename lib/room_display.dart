@@ -107,7 +107,9 @@ class _RoomDisplayState extends State<RoomDisplay> {
               itemBuilder: (context, idx) => widget._log[idx],
               // children: widget._log,
             ),
-            TextButton95(onPressed: () {}, child: const Text("Close"))
+            TextButton95(onPressed: () {
+              // debugPrint('${context.owner}');
+            }, child: const Text("Close"))
           ],
         ),
       );
@@ -139,19 +141,21 @@ class _RoomDisplayState extends State<RoomDisplay> {
               // children: widget._log,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(5, 0, 5, 5),
-            child: Row(
-              children: <Widget>[
-                // https://stackoverflow.com/questions/49553402/how-to-determine-screen-height-and-width
-                TextField95(
-                  controller: _controller,
-                  hintText: 'Send a message',
-                  constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width-100),
-                  selectionWidthStyle: BoxWidthStyle.max,
-                ),
-                TextButton95(onPressed: _sendMessage, child: const Text('Send')),
-              ],
+          SizedBox(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 0, 5, 5),
+              child: Row(
+                children: <Widget>[
+                  // https://stackoverflow.com/questions/49553402/how-to-determine-screen-height-and-width
+                  TextField95(
+                    controller: _controller,
+                    hintText: 'Send a message',
+                    constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width-100),
+                    selectionWidthStyle: BoxWidthStyle.max,
+                  ),
+                  TextButton95(onPressed: _sendMessage, child: const Text('Send')),
+                ],
+              ),
             ),
           ),
         ],

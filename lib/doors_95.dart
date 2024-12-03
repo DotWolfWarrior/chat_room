@@ -46,9 +46,9 @@ class TextButtonState95 extends State<TextButton95>{
           onHover: widget.onHover,
           onFocusChange: widget.onFocusChange,
           style: null,
-          focusNode: widget.focusNode,
-          autofocus: widget.autofocus,
-          clipBehavior: widget.clipBehavior,
+            focusNode: widget.focusNode,
+            autofocus: widget.autofocus,
+            clipBehavior: widget.clipBehavior,
           statesController: widget.statesController,
           isSemanticButton: widget.isSemanticButton,
           iconAlignment: widget.iconAlignment,
@@ -231,13 +231,13 @@ class TextField95State extends State<TextField95>{
 }
 
 class Container95 extends Container{
-  final double? height;
-  final double? width;
+  // final double? height;
+  // final double? width;
   Container95({
     super.key,
     super.child,
-    this.height,
-    this.width
+    super.height,
+    super.width
   });
 
   @override
@@ -251,8 +251,9 @@ class Container95 extends Container{
       ),
         color: Colors.grey
       ),
-      width: width,
-      height: height,
+      constraints: super.constraints,
+      // width: width,
+      // height: height,
       child: child,
     );
   }

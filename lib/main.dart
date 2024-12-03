@@ -125,9 +125,12 @@ class _MyHomePageState extends State<MyHomePage> {
     _MH.connectedListener = (){
       debugPrint("Updating connection");
       setState(() {
-        if(!_MH.connected) {
-          _openRoomsButtons.clear();
-          _openRooms.clear();
+        if(_MH.connected) {
+          for (String value in _openRooms.keys) {
+            _MH.send('<rooms><join>$value</join></rooms>');
+          }
+          // _openRoomsButtons.clear();
+          // _openRooms.clear();
         }
       });
     }; // this is funny
@@ -207,10 +210,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   )
               ],),
             ),
-            // TextField95(
-            //   controller: _controller,
-            //   hintText: 'Type debug message',
-            // ),
           ],
         ),
       ),
@@ -218,12 +217,6 @@ class _MyHomePageState extends State<MyHomePage> {
           children: _openRoomsButtons
           // children: List.from(_openRooms.values)
       ),
-
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: _sendMessage,
-      //   tooltip: 'send',
-      //   child: const Icon(Icons.add),
-      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
@@ -270,13 +263,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             TextButton95(
                 onPressed: (){
-                  _MH.send('<rooms><leave>$room</leave></rooms>');
-                  _openRooms.remove(room);
-                  Widget test = _openRoomsButtons.firstWhere((Widget ele){
-                    return ele.key! == Key(room);
-                  });
-                  _openRoomsButtons.remove(test);
-                  setState(() {});
+                  leaveRoom(room);
                 },
                 child: const Text("Leave"))
           ],
@@ -300,20 +287,18 @@ class _MyHomePageState extends State<MyHomePage> {
     ));
   }
 
-  // void _sendMessage() {
-  //   if (_controller.text.isNotEmpty) {
-  //     // debugPrint('text: ${_controller.text}');
-  //     _MH.send(_controller.text);
-  //     _controller.clear();
-  //     // _socket?.write('\r\n');
-  //     // _channel.sink.add(_controller.text);
-  //   }
-  // }
+  void leaveRoom(String room){
+    _MH.send('<rooms><leave>$room</leave></rooms>');
+    _openRooms.remove(room);
+    Widget test = _openRoomsButtons.firstWhere((Widget ele){
+      return ele.key! == Key(room);
+    });
+    _openRoomsButtons.remove(test);
+    setState(() {});
+  }
 
   @override
   void dispose() {
-    // _channel.sink.close();
-    // _socket?.close();
     _MH.dispose();
     _rmsgq.removeListener(parseMSG);
     _rmsgq.dispose();

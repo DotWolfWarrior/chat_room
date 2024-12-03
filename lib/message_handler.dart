@@ -70,8 +70,8 @@ class MessageHandler{
 
   Future<Socket> connect(int port) async {
     try {
-      return await Socket.connect('localhost', port);
-      // return await Socket.connect('192.168.1.139', port);
+      // return await Socket.connect('localhost', port);
+      return await Socket.connect('192.168.1.141', port);
     } catch(e){
       debugPrint('connection Failed: $e');
       await Future.delayed(const Duration(milliseconds: 1000));
