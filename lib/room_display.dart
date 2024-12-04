@@ -8,11 +8,12 @@ import 'doors_95.dart';
 
 class RoomDisplay extends StatefulWidget {
   final String name;
+  final void Function(String) leave;
   final QueueUpdate _queue = QueueUpdate();
   final MessageHandler _MH = MessageHandler();
   final List<Widget> _log = [];
 
-  RoomDisplay({super.key, required this.name}){
+  RoomDisplay({super.key, required this.name, required this.leave}){
     _MH.addPoll(name, _queue);
   }
 
@@ -42,20 +43,24 @@ class _RoomDisplayState extends State<RoomDisplay> {
   }
 
   void logListener(){
-    debugPrint("LogListener");
+    // debugPrint("LogListener");
     while(widget._queue.isNotEmpty) {
       String msg = widget._queue.pop();
       msg = unpack(msg);
       int start = msg.indexOf('<');
       int stop = msg.indexOf('>');
-      if((start != -1 || stop != -1) && msg.substring(start+1,stop) == 'status'){
+      if((start != -1 || stop != -1) && msg.substring(start+1,stop) == 'status') {
         int status = int.parse(unpack(msg));
         debugPrint('${widget.name} status: $status');
-        if(status == 200){
+        if (status == 200) {
           _connected.value = true;
-        } else if (status == 258){
-          widget._log.add(const SizedBox(width: double.infinity, child: Text("[Server]: You are now the owner of this room.")));
-        } else if (status == 800){
+        } else if (status == 258) {
+          widget._log.add(const SizedBox(width: double.infinity,
+              child: Text("[Server]: You are now the owner of this room.")));
+        } else if(status == 404 ){
+          widget._log.add(const SizedBox(width: double.infinity, child: Text("Entering Failed due room not existing")));
+          _connected.value = false;
+        }else if (status == 800){
           widget._log.add(const SizedBox(width: double.infinity, child: Text("Entering Failed try again")));
         }
       } else {
@@ -108,6 +113,8 @@ class _RoomDisplayState extends State<RoomDisplay> {
               // children: widget._log,
             ),
             TextButton95(onPressed: () {
+              widget.leave(widget.name);
+              Navigator.of(context).pop();
               // debugPrint('${context.owner}');
             }, child: const Text("Close"))
           ],

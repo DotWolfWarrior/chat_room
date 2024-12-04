@@ -1,6 +1,7 @@
 
 import 'package:chat_room/message_handler.dart';
 import 'package:chat_room/room_display.dart';
+import 'package:chat_room/settings.dart';
 import 'package:chat_room/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -147,7 +148,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
-    debugPrint("Building");
+    // debugPrint("Building");
 
     if(!_MH.hasUsers){
       return getUser();
@@ -207,6 +208,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: TextButton95(onPressed: _createRoom, child: const Text('Create Room')),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextButton95(onPressed: _settings, child: const Text('Settings')),
                   )
               ],),
             ),
@@ -246,7 +251,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _enterRoom(String room) {
     if (!_openRooms.containsKey(room)) {
       debugPrint("Adding entering room $_openRooms");
-      _openRooms[room] = RoomDisplay(name: room);
+      _openRooms[room] = RoomDisplay(name: room,leave: leaveRoom,);
       _openRoomsButtons.add(Padding(
         key: Key(room),
         padding: const EdgeInsets.all(8.0),
@@ -262,6 +267,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text(room)
             ),
             TextButton95(
+              key: const Key("leaveButtion"),
                 onPressed: (){
                   leaveRoom(room);
                 },
@@ -339,5 +345,11 @@ class _MyHomePageState extends State<MyHomePage> {
         _controller.clear();
       }
     });
+  }
+
+  void _settings(){
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => const Settings()
+    ));
   }
 }

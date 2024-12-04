@@ -15,6 +15,8 @@ class TextButton95 extends TextButton{
     super.iconAlignment,
     required super.child
   });
+
+  // void Function()? get onPressed => super.onPressed;
   @override
   State<ButtonStyleButton> createState() => TextButtonState95();
 }

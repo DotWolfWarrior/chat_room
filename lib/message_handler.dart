@@ -2,24 +2,32 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // GIVE ME MY POINTERS
 class MessageHandler{
   // Stream? _channel;
   static final MessageHandler _instance = MessageHandler._messageHandler();
   final Map<String,QueueUpdate> _pollInfo = {};
+  final SharedPreferencesAsync sp = SharedPreferencesAsync();
   String? _user;
   String get user => _user!;
   // returns true if user is Not null
   bool get hasUsers => _user != null;
   set user(String user) {
+    setUser(user);
+  }
+
+  void setUser(String usr) async {
     if(_user != null){
+      await sp.setString('username',usr);
+      _user = usr;
       _socket?.close();
-      _user = user;
       return;
     }
     _connected.value = true;
-    _user = user;
+    await sp.setString('username',usr);
+    _user = usr;
     _socket?.write('<usr>$_user</usr>\r\n');
   }
   // Queue<String> debug = Queue();
@@ -50,6 +58,7 @@ class MessageHandler{
   }
 
   void initConnection(int port) async {
+    _user = await sp.getString("username");
     _socket = await connect(port);
     _channel = _socket?.asBroadcastStream();
     _channel?.listen(poll,
@@ -70,8 +79,8 @@ class MessageHandler{
 
   Future<Socket> connect(int port) async {
     try {
-      // return await Socket.connect('localhost', port);
-      return await Socket.connect('192.168.1.141', port);
+      return await Socket.connect('localhost', port);
+      // return await Socket.connect('192.168.1.141', port);
     } catch(e){
       debugPrint('connection Failed: $e');
       await Future.delayed(const Duration(milliseconds: 1000));
